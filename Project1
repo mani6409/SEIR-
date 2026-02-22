@@ -1,29 +1,24 @@
 """
-Project 1 – Web Fetching and SimHash Comparison Tool
+Project 1 – Webpage Fetching Tool
 
-This program can:
-1. Fetch a webpage and display its title, body text and links.
-2. Compare two webpages using the SimHash algorithm
-   and calculate their similarity percentage.
+This program fetches a webpage and displays:
+- Page title
+- Body text
+- All hyperlinks
 """
 
 import sys
 import urllib.request
-import re
 import ssl
 from html.parser import HTMLParser
 
 
-# Disable SSL verification to avoid certificate errors
 ssl_context = ssl._create_unverified_context()
 
 
 class MyHTMLParser(HTMLParser):
     """
-    This class extracts:
-    - Page title
-    - Body text
-    - All hyperlinks
+    Extracts title, body text and hyperlinks from a webpage.
     """
 
     def __init__(self):
@@ -61,10 +56,6 @@ class MyHTMLParser(HTMLParser):
 
 
 def fetch_page(url):
-    """
-    Sends an HTTP request, downloads the HTML,
-    and parses it using MyHTMLParser.
-    """
 
     request = urllib.request.Request(
         url,
@@ -80,153 +71,30 @@ def fetch_page(url):
     return parser
 
 
-def get_word_frequencies(text):
-    """
-    Converts text to lowercase, extracts words,
-    and counts frequency of each word.
-    """
-
-    text = text.lower()
-    words = re.findall(r'[a-z0-9]+', text)
-
-    frequencies = {}
-
-    for word in words:
-        if word in frequencies:
-            frequencies[word] += 1
-        else:
-            frequencies[word] = 1
-
-    return frequencies
-
-
-def polynomial_hash(word):
-    """
-    Generates a 64-bit hash value for a word.
-    """
-
-    p = 53
-    m = 2**64
-
-    hash_value = 0
-    power = 1
-
-    for character in word:
-        hash_value = (hash_value + ord(character) * power) % m
-        power = (power * p) % m
-
-    return hash_value
-
-
-def compute_simhash(freq_dict):
-    """
-    Creates a 64-bit SimHash fingerprint of a document.
-    Word frequencies are used as weights.
-    """
-
-    vector = [0] * 64
-
-    for word, frequency in freq_dict.items():
-        word_hash = polynomial_hash(word)
-
-        for i in range(64):
-            bit = (word_hash >> i) & 1
-            if bit == 1:
-                vector[i] += frequency
-            else:
-                vector[i] -= frequency
-
-    final_hash = 0
-
-    for i in range(64):
-        if vector[i] > 0:
-            final_hash |= (1 << i)
-
-    return final_hash
-
-
-def count_common_bits(hash1, hash2):
-    """
-    Counts how many bit positions match
-    between two 64-bit hashes.
-    """
-
-    match_count = 0
-
-    for i in range(64):
-        if ((hash1 >> i) & 1) == ((hash2 >> i) & 1):
-            match_count += 1
-
-    return match_count
-
-
 def main():
 
-    if len(sys.argv) < 3:
-        print("Usage:")
-        print("  python3 project1.py fetch <URL>")
-        print("  python3 project1.py simhash <URL1> <URL2>")
+    if len(sys.argv) != 2:
+        print("Usage: python3 web_fetcher.py <URL>")
         return
 
-    mode = sys.argv[1]
+    url = sys.argv[1]
 
-    if mode == "fetch":
+    try:
+        parser = fetch_page(url)
+    except Exception as e:
+        print("Could not open the page.")
+        print("Reason:", e)
+        return
 
-        if len(sys.argv) != 3:
-            print("Please provide exactly one URL.")
-            return
+    print("\nPage Title:")
+    print(parser.title_text.strip())
 
-        url = sys.argv[2]
+    print("\nBody Text:")
+    print(parser.body_text.strip())
 
-        try:
-            parser = fetch_page(url)
-        except Exception as e:
-            print("Could not open the page.")
-            print("Reason:", e)
-            return
-
-        print("\nPage Title:")
-        print(parser.title_text.strip())
-
-        print("\nBody Text:")
-        print(parser.body_text.strip())
-
-        print("\nLinks Found:")
-        for link in parser.links:
-            print(link)
-
-    elif mode == "simhash":
-
-        if len(sys.argv) != 4:
-            print("Please provide exactly two URLs.")
-            return
-
-        url1 = sys.argv[2]
-        url2 = sys.argv[3]
-
-        try:
-            parser1 = fetch_page(url1)
-            parser2 = fetch_page(url2)
-        except Exception as e:
-            print("Could not open one of the pages.")
-            print("Reason:", e)
-            return
-
-        freq1 = get_word_frequencies(parser1.body_text)
-        freq2 = get_word_frequencies(parser2.body_text)
-
-        simhash1 = compute_simhash(freq1)
-        simhash2 = compute_simhash(freq2)
-
-        matching_bits = count_common_bits(simhash1, simhash2)
-        similarity = (matching_bits / 64) * 100
-
-        print("\nComparison Result:")
-        print("Matching bits:", matching_bits, "out of 64")
-        print("Similarity:", round(similarity, 2), "%")
-
-    else:
-        print("Invalid option. Please use 'fetch' or 'simhash'.")
+    print("\nLinks Found:")
+    for link in parser.links:
+        print(link)
 
 
 if __name__ == "__main__":
