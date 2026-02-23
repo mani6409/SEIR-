@@ -1,14 +1,9 @@
-"""
-Project 2 – SimHash Similarity Tool
-
-This program:
-- Reads two text files
-- Computes their SimHash values
-- Calculates similarity percentage
-"""
-
 import sys
 import re
+import urllib.request
+import ssl
+
+ssl._create_default_https_context = ssl._create_unverified_context
 
 
 def get_word_frequencies(text):
@@ -78,21 +73,24 @@ def count_common_bits(hash1, hash2):
 def main():
 
     if len(sys.argv) != 3:
-        print("Usage: python3 simhash_tool.py <file1.txt> <file2.txt>")
+        print("Usage: python3 webpage.py <url1> <url2>")
         return
 
-    file1 = sys.argv[1]
-    file2 = sys.argv[2]
+    url1 = sys.argv[1]
+    url2 = sys.argv[2]
 
     try:
-        with open(file1, "r", encoding="utf-8") as f:
-            text1 = f.read()
+        req1 = urllib.request.Request(url1, headers={'User-Agent': 'Mozilla/5.0'})
+        req2 = urllib.request.Request(url2, headers={'User-Agent': 'Mozilla/5.0'})
 
-        with open(file2, "r", encoding="utf-8") as f:
-            text2 = f.read()
+        with urllib.request.urlopen(req1) as r1:
+            text1 = r1.read().decode("utf-8", errors="ignore")
+
+        with urllib.request.urlopen(req2) as r2:
+            text2 = r2.read().decode("utf-8", errors="ignore")
 
     except Exception as e:
-        print("Error reading files.")
+        print("Error reading URLs.")
         print("Reason:", e)
         return
 
