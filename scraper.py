@@ -1,5 +1,6 @@
 import sys
 import urllib.request
+import ssl
 from html.parser import HTMLParser
 
 
@@ -41,28 +42,35 @@ class MyHTMLParser(HTMLParser):
                 self.body_text += text + " "
 
 
-def main():
+def execute_scraper():
     if len(sys.argv) != 2:
-        print("Usage: python3 webpage.py <URL>")
+        print("Usage: python scraper.py <URL>")
         return
 
     url = sys.argv[1]
 
+    if not url.startswith("http"):
+        url = "https://" + url
+
     try:
+        context = ssl._create_unverified_context()
+
         request = urllib.request.Request(
             url,
             headers={"User-Agent": "Mozilla/5.0"}
         )
-        response = urllib.request.urlopen(request)
+
+        response = urllib.request.urlopen(request, context=context)
         html_content = response.read().decode("utf-8", errors="ignore")
-    except:
+
+    except Exception:
         print("Error fetching URL")
         return
 
     parser = MyHTMLParser()
     parser.feed(html_content)
 
-    print(parser.title_text)
+    print(parser.title_text.strip())
     print(parser.body_text.strip())
 
     for link in parser.links:
@@ -70,4 +78,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    execute_scraper()
